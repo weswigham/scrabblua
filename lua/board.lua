@@ -10,10 +10,10 @@ local table = table
 
 module("board")
 
-TRIPLE_WORD = "x3W"
-DOUBLE_WORD = "x2W"
-TRIPLE_LETTER = "x3L" 
-DOUBLE_LETTER = "x2L"
+TRIPLE_WORD = tiles.TRIPLE_WORD
+DOUBLE_WORD = tiles.DOUBLE_WORD
+TRIPLE_LETTER = tiles.TRIPLE_LETTER
+DOUBLE_LETTER = tiles.DOUBLE_LETTER
 
 local Board = {}
 

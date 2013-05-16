@@ -1,14 +1,12 @@
-
---Global Enums
-TRIPLE_WORD = "x3W"
-DOUBLE_WORD = "x2W"
-TRIPLE_LETTER = "x3L" 
-DOUBLE_LETTER = "x2L"
-
-
 local tiles = require("tiles")
 local board = require("board")
 local dawg = require("dawg")
+
+--Global Enums
+TRIPLE_WORD = tiles.TRIPLE_WORD
+DOUBLE_WORD = tiles.DOUBLE_WORD
+TRIPLE_LETTER = tiles.TRIPLE_LETTER
+DOUBLE_LETTER = tiles.DOUBLE_LETTER
 
 function loadDict()
     local d = {}
@@ -116,24 +114,7 @@ end
 
 
 function sortDict(t)
-    local ret = dawg.New()
-    for k,v in ipairs(t) do
-        ret:Add(v)
-        --[[if not ret[lex] then
-            ret[lex] = {}
-            ret[lex].subs = function(full)
-                local ret = {}
-                for kz,vz in pairs(full) do
-                    if lex~=kz and string.hasChars(lex,kz) then
-                        table.insert(ret,full[kz])
-                    end
-                end
-                return ret
-            end
-        end
-        table.insert(ret[lex],v)]]
-    end
-    return ret
+    return dawg.LoadDict(t)
 end
 
 
@@ -146,12 +127,23 @@ function init()
     local d = sortDict(dict)
     local en = (os.time()-s)
     --table.print(d)
-    print("Creating a sorted hashmap took "..en.." seconds.")
+    print("Creating a dawg took "..en.." seconds.")
     
     local s = os.time()
-    local sho = d:GetEnds("sho")
+    local prefix = "sho"
+    local sho = d.root.edges.s.edges.h.edges.o
+    local fullList = {}
+    local queue = {}
+    table.insert(queue, {sho, prefix})
+    while #queue>0 do
+        local node, prefix = unpack(table.remove(queue, 1))
+        for k,v in pairs(node.edges) do
+            table.insert(queue, {v, prefix..k})
+        end
+        if node.final then table.insert(fullList, prefix) end
+    end
     local en = (os.time()-s)
-    print("Finding all starting ending in 'sho' took "..en.." seconds.")
+    print("Finding all starting with 'sho' took "..en.." seconds.")
     
     brd = board.Empty()
     
