@@ -6,6 +6,10 @@ local print = print
 local type = type
 local string = string
 local table = table
+local ipairs = ipairs
+local pairs = pairs
+local unpack = unpack
+local min = math.min
 
 module('dawg')
 
@@ -19,11 +23,13 @@ function DawgNode:__tostring()
     table.insert(ret, self.final and "1" or "0")
     
     for k,v in pairs(self.edges) do
+        table.insert(ret, "(")
         table.insert(ret, k)
         table.insert(ret, tostring(v))
+        table.insert(ret, ")")
     end
     
-    return table.concat(ret, "_")
+    return table.concat(ret, "-")
 end
 
 function DawgNode:__eq(other)
@@ -55,8 +61,8 @@ function Dawg:insert( word )
     end
     
     local common = 0
-    for i=string.len(word), string.len(self.previousWord) do
-        if string.sub(word,i,i) != string.sub(self.previousWord,i,i) then break end
+    for i=1, min(string.len(word), string.len(self.previousWord or "")) do
+        if string.sub(word,i,i) ~= string.sub(self.previousWord,i,i) then break end
         common = common + 1
     end
     
@@ -66,14 +72,18 @@ function Dawg:insert( word )
     if #self.uncheckedNodes==0 then
         node = self.root
     else
-        node = self.uncheckedNodes[#self.uncheckedNodes][2]
+        --local snode, char = unpack(self.uncheckedNodes[#self.uncheckedNodes])
+        --node = snode.edges[char]
+        --print(string.sub(word,1,common), common, word, self.previousWord)
+        node = self:node(string.sub(word,1,common))
     end
     
-    for i=common, string.len(word) do
+    for i=common+1, string.len(word) do
         local nextn = NewNode()
         node.edges[string.sub(word,i,i)] = nextn
-        table.insert(self.uncheckedNodes, {node, string.sub(word,i,i), nextn})
-        node = nextNode
+
+        table.insert(self.uncheckedNodes, {node, string.sub(word,i,i)})
+        node = nextn
     end
     
     node.final = true
@@ -85,28 +95,33 @@ function Dawg:finish()
 end
 
 function Dawg:minimize(num)
-    for i=#self.uncheckedNodes, num, -1 do
-        parent, letter, child = unpack(self.uncheckedNodes[i])
-        
+    for i=#self.uncheckedNodes, num+1, -1 do
+        local parent, letter = unpack(self.uncheckedNodes[i])
+
+        local child = parent.edges[letter]
         if self.minimizedNodes[tostring(child)] then
             parent.edges[letter] = self.minimizedNodes[tostring(child)]
         else
-            self.minimizedNodes[tostring(child)] = child
+            self.minimizedNodes[tostring(child)] = parent.edges[letter]
         end
         
-        table.remove(self.uncheckedNodes, 1)
+        table.remove(self.uncheckedNodes)
     end
 end
 
 function Dawg:lookup(word)
+    return self:node(word).final
+end
+
+function Dawg:node(prefix)
     local node = self.root
-    for i=1, string.len(word) do
-        local letter = string.sub(word,i,i)
-        if not node.edges[letter] then return end
+    for i=1, string.len(prefix) do
+        local letter = string.sub(prefix,i,i)
+        if not node.edges[letter] then print("Commonality failed", node, prefix, letter, node.edges[letter]) return end
         node = node.edges[letter]
     end
     
-    return node.final
+    return node
 end
 
 function Dawg:__len()
@@ -121,9 +136,26 @@ function Dawg:edges()
     return count
 end
 
+function Dawg:startsWith(prefix)
+    local node = self:node(prefix)
+
+    local fullList = {}
+    local queue = {}
+    table.insert(queue, {node, prefix})
+    while #queue>0 do
+        local node, prefix = unpack(table.remove(queue))
+        for k,v in pairs(node.edges) do
+            table.insert(queue, {v, prefix..k})
+        end
+        if node.final then table.insert(fullList, prefix) end
+    end
+    
+    return fullList
+end
+
 function New()
     local b = {}
-    setmetatable(b,Tiles)
+    setmetatable(b,Dawg)
     b.root = NewNode()
     b.uncheckedNodes = {}
     b.minimizedNodes = {}

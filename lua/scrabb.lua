@@ -130,20 +130,11 @@ function init()
     print("Creating a dawg took "..en.." seconds.")
     
     local s = os.time()
-    local prefix = "sho"
-    local sho = d.root.edges.s.edges.h.edges.o
-    local fullList = {}
-    local queue = {}
-    table.insert(queue, {sho, prefix})
-    while #queue>0 do
-        local node, prefix = unpack(table.remove(queue, 1))
-        for k,v in pairs(node.edges) do
-            table.insert(queue, {v, prefix..k})
-        end
-        if node.final then table.insert(fullList, prefix) end
-    end
+    local prefix = "dom"
+    local fullList = d:startsWith(prefix)
     local en = (os.time()-s)
-    print("Finding all starting with 'sho' took "..en.." seconds.")
+    table.print(fullList)
+    print("Finding all starting with 'dom' took "..en.." seconds.")
     
     brd = board.Empty()
     
